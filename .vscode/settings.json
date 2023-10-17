@@ -66,5 +66,6 @@
 		"random": "cpp",
 		"utility": "cpp",
 		"iomanip": "cpp"
-	}
+	},
+	"cmake.configureOnOpen": false
 }

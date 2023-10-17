@@ -1,0 +1,9 @@
+#!/bin/bash
+#SBATCH -p rome16q # partition (queue)
+#SBATCH -N 8 # number of nodes
+#SBATCH --ntasks-per-node 16  # number of cores
+#SBATCH -t 0-00:10 # time (D-HH:MM)
+#SBATCH -o test.%j.out # STDOUT
+#SBATCH --exclusive
+module load openmpi-4.0.5
+srun build/debug/mesh_calc
