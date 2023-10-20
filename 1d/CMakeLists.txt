@@ -14,7 +14,7 @@ find_package(Boost REQUIRED
                  mpi
              REQUIRED)
 
-add_executable(mesh_calc 1d_total.cpp)
+add_executable(mesh_calc total.cpp)
 target_include_directories(mesh_calc PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
 target_include_directories(mesh_calc PRIVATE ${Boost_INCLUDE_DIRS})
 target_link_libraries(mesh_calc PRIVATE ${Boost_LIBRARIES})

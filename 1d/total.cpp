@@ -13,8 +13,8 @@ int main(int argc, char* argv[]) {
 
     const int shift = 10;
     const int a = 1 << shift;
-    const unsigned int n = a * a;
-    int reps = 100;
+    const int n = a * a;
+    int reps = 1000;
     int local_size = n / size;
     int start_idx = rank * local_size;
     int end_idx = start_idx + local_size;
@@ -69,6 +69,7 @@ int main(int argc, char* argv[]) {
 	std::vector<std::vector<double> > recv_buffer(size);
 	for (int dest = 0; dest < size; dest++) {
 		if (dest == rank) { continue; }
+		if (send_res_mat[rank][dest].size() == 0) { continue; }
 		send_buffer[dest].resize(send_res_mat[rank][dest].size());
 		recv_buffer[dest].resize(send_res_mat[rank][dest].size());
 	}
@@ -81,41 +82,34 @@ int main(int argc, char* argv[]) {
 			}
 		}
 
-
+		int send_amount = 0;
 		for (int dest = 0; dest < size; dest++) {
 			if (dest == rank) { continue; }
+			if (send_res_mat[rank][dest].size() == 0) { continue; }
 			for (int j = 0; j < send_res_mat[rank][dest].size(); j++) {
 				send_buffer[dest][j] = (v_new[send_res_mat[rank][dest][j]]);
 			}
+			send_amount++;
 		}
-		MPI_Request send_requests[size];
-		MPI_Request recv_requests[size];
+	
+		MPI_Request send_requests[send_amount];
+		MPI_Request recv_requests[send_amount];
 
+		send_amount = 0;
 		for (int dest = 0; dest < size; dest++) {
-			MPI_Isend(send_buffer[dest].data(), send_buffer[dest].size(), MPI_DOUBLE, dest, 0, MPI_COMM_WORLD, &send_requests[dest]);
-			MPI_Irecv(recv_buffer[dest].data(), recv_buffer[dest].size(), MPI_DOUBLE, dest, 0, MPI_COMM_WORLD, &recv_requests[dest]);
+			if (dest == rank) { continue; }
+			if (send_res_mat[rank][dest].size() == 0) { continue; }
+			MPI_Isend(send_buffer[dest].data(), send_buffer[dest].size(), MPI_DOUBLE, dest, 0, MPI_COMM_WORLD, &send_requests[send_amount]);
+			MPI_Irecv(recv_buffer[dest].data(), recv_buffer[dest].size(), MPI_DOUBLE, dest, 0, MPI_COMM_WORLD, &recv_requests[send_amount]);
+			send_amount++;
 		}
 
-		MPI_Waitall(size, send_requests, MPI_STATUSES_IGNORE);
-    	MPI_Waitall(size, recv_requests, MPI_STATUSES_IGNORE);
-
-		// std::vector<MPI_Request> send_requests(size);
-		// std::vector<MPI_Request> recv_requests(size);
-
-		// for (int dest = 0; dest < size; dest++) {
-		// 	if (dest == rank) { continue; }
-		// 	MPI_Isend(send_buffer[dest].data(), send_buffer[dest].size(), MPI_DOUBLE, dest, 0, MPI_COMM_WORLD, &send_requests[dest]);
-		// 	MPI_Irecv(recv_buffer[dest].data(), recv_buffer[dest].size(), MPI_DOUBLE, dest, 0, MPI_COMM_WORLD, &recv_requests[dest]);
-		// }
-
-		// for (int dest = 0; dest < size; dest++) {
-		// 	if (dest == rank) { continue; }
-		// 	MPI_Wait(&send_requests[dest], MPI_STATUS_IGNORE);
-		// 	MPI_Wait(&recv_requests[dest], MPI_STATUS_IGNORE);
-		// }
+		MPI_Waitall(send_amount, send_requests, MPI_STATUSES_IGNORE);
+    	MPI_Waitall(send_amount, recv_requests, MPI_STATUSES_IGNORE);
 		
 		for (int dest = 0; dest < size; dest++) {
 			if (dest == rank) { continue; }
+			if (send_res_mat[rank][dest].size() == 0) { continue; }
 			for (int j = 0; j < send_res_mat[rank][dest].size(); j++) {
 				v_new[send_res_mat[dest][rank][j]] = recv_buffer[dest][j];
 			}
@@ -129,7 +123,7 @@ int main(int argc, char* argv[]) {
 	MPI_Barrier(MPI_COMM_WORLD);
 	end_time = MPI_Wtime();
 	if (rank == 0) {
-		cout << "Time: " << end_time - start_time << endl;
+		cout << end_time - start_time << endl;
 	}
 
 	MPI_Finalize();

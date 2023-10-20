@@ -53,9 +53,9 @@ int main(int argc, char* argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    const int shift = 4;
+    const int shift = 5;
     const int a = 1 << shift;
-    const int n = 2 * a * a;
+    const int n = a * a;
     int reps = atoi(argv[1]);
     int local_size = n / size;
     int start_idx = rank * local_size;
@@ -72,10 +72,10 @@ int main(int argc, char* argv[]) {
 		int idx[4];
 		int adj_rank;
 
-		idx[0] = (0 <= i - 1 && i % (2 * a) != 0) ? (i - 1) : i;
+		idx[0] = (0 <= i - 1 && i % (a) != 0) ? (i - 1) : i;
 		idx[1] = i;
-		idx[2] = (i + 1 <= n && (i + 1) % (2 * a) != 0) ? (i + 1) : i;
-		idx[3] = (i % 2 == 0) ? (2 * a + i + 1 <= n ? (2 * a + i + 1) : i) : (0 <= i - 2 * a - 1 ? (i - 2 * a - 1) : i);
+		idx[2] = (i + 1 <= n && (i + 1) % (a) != 0) ? (i + 1) : i;
+		idx[3] = (i % 2 == 0) ? (a + i + 1 <= n ? (a + i + 1) : i) : (0 <= i - a - 1 ? (i - a - 1) : i);
 
 		I_skinny[i - start_idx][0] = idx[0];
 		I_skinny[i - start_idx][1] = idx[1];
@@ -167,7 +167,7 @@ int main(int argc, char* argv[]) {
 	MPI_Allgather(v_old.data() + start_idx, local_size, MPI_DOUBLE, v_old.data(), local_size, MPI_DOUBLE, MPI_COMM_WORLD);
 	
 	if (rank == 0) {
-		print_matrix(v_old, n, 2 * a); // Update the print_vector call
+		print_matrix(v_old, n, a); // Update the print_vector call
 	}
 	
 	MPI_Finalize();
