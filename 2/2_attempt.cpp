@@ -5,54 +5,6 @@
 
 using namespace std;
 
-void print_skinny_matrix(
-	const std::vector<std::vector<int> >& skinny,
-	const int& n) {
-	for (int i = 0; i < n; i++) {
-		cout << skinny[i][0] << " " << skinny[i][1] << " " << skinny[i][2] << " " << skinny[i][3] << endl;
-	}
-}
-
-void print_matrix(
-    const std::vector<double>& v,
-    const int& n,
-    const int& a) {
-    for (int i = 0; i < n; i++) {
-        cout << v[i] << " ";
-        if (i % a == a - 1) {
-            cout << endl;
-        }
-    }
-}
-
-void print_vector_d(
-	const std::vector<double>& v,
-	const int& n) {
-	for (int i = 0; i < n; i++) {
-		cout << v[i] << " ";
-	}
-}
-void print_vector_i(
-	const std::vector<int>& v,
-	const int& n) {
-	for (int i = 0; i < n; i++) {
-		cout << v[i] << " ";
-	}
-}
-
-void print_3d_matrix(
-	const std::vector<std::vector<std::vector<int> > >& matrix) {
-    for (size_t i = 0; i < matrix.size(); i++) {
-		cout << "rank: " << i << endl;
-        for (size_t j = 0; j < matrix[i].size(); j++) {
-            for (size_t k = 0; k < matrix[i][j].size(); k++) {
-				// print the list where i is from j is to and k in values
-				cout << "from: " << i << " to: " << j << " value: " << matrix[i][j][k] << endl;
-            }
-        }
-    }
-}
-
 int main(int argc, char* argv[]) {
     MPI_Init(&argc, &argv);
 
@@ -63,7 +15,7 @@ int main(int argc, char* argv[]) {
     const int shift = 10;
     const int a = 1 << shift;
     const int n = a * a;
-    int reps = 1000;
+    int reps = 100;
     int local_size = n / size;
     int start_idx = rank * local_size;
     int end_idx = start_idx + local_size;
@@ -162,38 +114,11 @@ int main(int argc, char* argv[]) {
 			I_skinny[i][3] = rank_map[I_skinny[i][3]];
 		}
 	}
-	// MPI_Barrier(MPI_COMM_WORLD);
-	// if (rank == 0) {
-	// 	cout << "I_skinny_reordered, rank: " << 0 << endl;
-	// 	print_skinny_matrix(I_skinny_reordered, local_size);
-	// 	cout << "I_skinny" << endl;
-	// 	print_skinny_matrix(I_skinny, local_size);
-	// }
-	// MPI_Barrier(MPI_COMM_WORLD);
-	// if (rank == 1) {
-	// 	cout << "I_skinny_reordered, rank: " << 1 << endl;
-	// 	print_skinny_matrix(I_skinny_reordered, local_size);
-	// 	cout << "I_skinny" << endl;
-	// 	print_skinny_matrix(I_skinny, local_size);
-	// }
-	// MPI_Barrier(MPI_COMM_WORLD);
-	// for (int i = 0; i < rank_send.size(); i++) {
-	// 	cout << "rank: " << rank << " to: " << i << "; ";
-	// 	print_vector_i(rank_send[i], rank_send[i].size());
-	// 	cout << endl;
-	// }
-	// for (int i = 0; i < rank_recv.size(); i++) {
-	// 	cout << "rank: " << rank << " from: " << i << "; ";
-	// 	print_vector_i(rank_recv[i], rank_recv[i].size());
-	// 	cout << endl;
-	// }
 
 	if (rank == 0){
 		v_old[0] = 1;
 	}
-	double start_time, end_time;
-	MPI_Barrier(MPI_COMM_WORLD);
-	start_time = MPI_Wtime();
+
 
 	std::vector<std::vector<double> > send_buffer(size);
 	std::vector<std::vector<double> > recv_buffer(size);
@@ -204,6 +129,10 @@ int main(int argc, char* argv[]) {
 		recv_buffer[dest].resize(rank_recv[dest].size());
 	}
 
+	double start_time, end_time;
+	MPI_Barrier(MPI_COMM_WORLD);
+	start_time = MPI_Wtime();
+
 	for (int k = 0; k < reps; k++) {
 		for (int i = 0; i < local_size; i++) {
 			v_new[i] = 0.0;
@@ -213,18 +142,13 @@ int main(int argc, char* argv[]) {
 		}
 
 
+		int send_amount = 0;
 		for (int dest = 0; dest < size; dest++) {
 			if (dest == rank) { continue; }
 			if (rank_send[dest].size() == 0) { continue; }
 			for (int j = 0; j < rank_send[dest].size(); j++) {
 				send_buffer[dest][j] = v_new[rank_send[dest][j]];
 			}
-		}
-
-		int send_amount = 0;
-		for (int dest = 0; dest < size; dest++) {
-			if (dest == rank) { continue; }
-			if (rank_send[dest].size() == 0) { continue; }
 			send_amount++;
 		}
 
@@ -255,31 +179,25 @@ int main(int argc, char* argv[]) {
 	}
 
 	
-	// make the final vector v_fin
-	// rank 0 receives from all other ranks
-	std::vector<double> v_fin(n);
-	if (rank == 0) {
-		for (int i = 0; i < local_size; i++) {
-			v_fin[i] = v_old[i];
-		}
-		for (int i = 1; i < size; i++) {
-			MPI_Recv(v_fin.data() + i * local_size, local_size, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		}
-	}
-	// all other ranks send to rank 0
-	else {
-		MPI_Send(v_old.data(), local_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
-	}
+	// std::vector<double> v_fin(n);
+	// if (rank == 0) {
+	// 	for (int i = 0; i < local_size; i++) {
+	// 		v_fin[i] = v_old[i];
+	// 	}
+	// 	for (int i = 1; i < size; i++) {
+	// 		MPI_Recv(v_fin.data() + i * local_size, local_size, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+	// 	}
+	// }
+	// else {
+	// 	MPI_Send(v_old.data(), local_size, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+	// }
+
 	MPI_Barrier(MPI_COMM_WORLD);
 	end_time = MPI_Wtime();
 	if (rank == 0) {
 		cout << end_time - start_time << endl;
 	}
-	// print the final vector
-	// if (rank == 0) {
-	// 	cout << 1 << endl;
-	// 	print_matrix(v_fin, n, a);
-	// }
+	
 	MPI_Finalize();
 	return 0;
 }

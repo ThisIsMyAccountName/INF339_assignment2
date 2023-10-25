@@ -42,14 +42,15 @@ int main(int argc, char* argv[]) {
         A_skinny[i][2] = 0.2;
         A_skinny[i][3] = 0.2;
     }
-    double start_time, end_time;
-    MPI_Barrier(MPI_COMM_WORLD);
-    start_time = MPI_Wtime();
     if (rank == 0) {
         v_old[0] = 1;
     }
 
     MPI_Bcast(v_old.data(), n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    
+    double start_time, end_time;
+    MPI_Barrier(MPI_COMM_WORLD);
+    start_time = MPI_Wtime();
 
     for (int k = 0; k < reps; k++) {
         for (int i = 0; i < local_size; i++) {

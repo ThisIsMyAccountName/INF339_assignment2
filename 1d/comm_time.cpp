@@ -5,46 +5,6 @@
 
 using namespace std;
 
-void print_skinny_matrix(
-	const std::vector<std::vector<int> >& skinny,
-	const int& n) {
-	for (int i = 0; i < n; i++) {
-		cout << skinny[i][0] << " " << skinny[i][1] << " " << skinny[i][2] << " " << skinny[i][3] << endl;
-	}
-}
-
-void print_matrix(
-    const std::vector<double>& v,
-    const int& n,
-    const int& a) {
-    for (int i = 0; i < n; i++) {
-        cout << v[i] << " ";
-        if (i % a == a - 1) {
-            cout << endl;
-        }
-    }
-}
-
-void print_vector(
-	const std::vector<double>& v,
-	const int& n) {
-	for (int i = 0; i < n; i++) {
-		cout << v[i] << " ";
-	}
-}
-
-void print_3d_matrix(
-	const std::vector<std::vector<std::vector<int> > >& matrix) {
-    for (size_t i = 0; i < matrix.size(); i++) {
-		cout << "rank: " << i << endl;
-        for (size_t j = 0; j < matrix[i].size(); j++) {
-            for (size_t k = 0; k < matrix[i][j].size(); k++) {
-				// print the list where i is from j is to and k in values
-				cout << "from: " << i << " to: " << j << " value: " << matrix[i][j][k] << endl;
-            }
-        }
-    }
-}
 
 int main(int argc, char* argv[]) {
     MPI_Init(&argc, &argv);
@@ -53,7 +13,7 @@ int main(int argc, char* argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    const int shift = 5;
+    const int shift = 3;
     const int a = 1 << shift;
     const int n = a * a;
     int reps = atoi(argv[1]);
@@ -127,6 +87,11 @@ int main(int argc, char* argv[]) {
 		recv_buffer[dest].resize(send_res_mat[rank][dest].size());
 	}
 
+	int send_amount;
+	double time_accumulator = 0;
+	double start_time, end_time;
+	MPI_Barrier(MPI_COMM_WORLD);
+
 	for (int k = 0; k < reps; k++) {
 		for (int i = 0; i < local_size; i++) {
 			v_new[i + start_idx] = 0.0;
@@ -134,25 +99,32 @@ int main(int argc, char* argv[]) {
 				v_new[i + start_idx] += A_skinny[i][j] * v_old[I_skinny[i][j]];
 			}
 		}
-
-
+		
+		start_time = MPI_Wtime();
+		send_amount = 0;
 		for (int dest = 0; dest < size; dest++) {
 			if (dest == rank) { continue; }
+			if (send_res_mat[rank][dest].size() == 0) { continue; }
 			for (int j = 0; j < send_res_mat[rank][dest].size(); j++) {
 				send_buffer[dest][j] = (v_new[send_res_mat[rank][dest][j]]);
 			}
+			send_amount++;
 		}
+	
+		MPI_Request send_requests[send_amount];
+		MPI_Request recv_requests[send_amount];
 
-		MPI_Request send_requests[size];
-		MPI_Request recv_requests[size];
-
+		send_amount = 0;
 		for (int dest = 0; dest < size; dest++) {
-			MPI_Isend(send_buffer[dest].data(), send_buffer[dest].size(), MPI_DOUBLE, dest, 0, MPI_COMM_WORLD, &send_requests[dest]);
-			MPI_Irecv(recv_buffer[dest].data(), recv_buffer[dest].size(), MPI_DOUBLE, dest, 0, MPI_COMM_WORLD, &recv_requests[dest]);
+			if (dest == rank) { continue; }
+			if (send_res_mat[rank][dest].size() == 0) { continue; }
+			MPI_Isend(send_buffer[dest].data(), send_buffer[dest].size(), MPI_DOUBLE, dest, 0, MPI_COMM_WORLD, &send_requests[send_amount]);
+			MPI_Irecv(recv_buffer[dest].data(), recv_buffer[dest].size(), MPI_DOUBLE, dest, 0, MPI_COMM_WORLD, &recv_requests[send_amount]);
+			send_amount++;
 		}
 
-		MPI_Waitall(size, send_requests, MPI_STATUSES_IGNORE);
-    	MPI_Waitall(size, recv_requests, MPI_STATUSES_IGNORE);
+		MPI_Waitall(send_amount, send_requests, MPI_STATUSES_IGNORE);
+    	MPI_Waitall(send_amount, recv_requests, MPI_STATUSES_IGNORE);
 
 		for (int dest = 0; dest < size; dest++) {
 			if (dest == rank) { continue; }
@@ -160,14 +132,17 @@ int main(int argc, char* argv[]) {
 				v_new[send_res_mat[dest][rank][j]] = recv_buffer[dest][j];
 			}
 		}
+		end_time = MPI_Wtime();
+		time_accumulator += end_time - start_time;
+		
 
 		std::swap(v_new, v_old);
 	}
 
-	MPI_Allgather(v_old.data() + start_idx, local_size, MPI_DOUBLE, v_old.data(), local_size, MPI_DOUBLE, MPI_COMM_WORLD);
-	
+	MPI_Barrier(MPI_COMM_WORLD);
+	end_time = MPI_Wtime();
 	if (rank == 0) {
-		print_matrix(v_old, n, a); // Update the print_vector call
+		cout << time_accumulator << endl;
 	}
 	
 	MPI_Finalize();

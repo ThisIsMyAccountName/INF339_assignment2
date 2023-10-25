@@ -11,10 +11,10 @@ int main(int argc, char* argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    const int shift = 10;
+    const int shift = 15;
     const int a = 1 << shift;
     const int n = a * a;
-    int reps = 1000;
+    int reps = 100;
     int local_size = n / size;
     int start_idx = rank * local_size;
     int end_idx = start_idx + local_size;
@@ -54,7 +54,8 @@ int main(int argc, char* argv[]) {
 		A_skinny[i][2] = 0.2;
 		A_skinny[i][3] = 0.2;
     }
-    
+
+	int send_amount;
 	double start_time, end_time;
 	MPI_Barrier(MPI_COMM_WORLD);
 	start_time = MPI_Wtime();
@@ -82,7 +83,7 @@ int main(int argc, char* argv[]) {
 			}
 		}
 
-		int send_amount = 0;
+		send_amount = 0;
 		for (int dest = 0; dest < size; dest++) {
 			if (dest == rank) { continue; }
 			if (send_res_mat[rank][dest].size() == 0) { continue; }
