@@ -2,6 +2,7 @@
 #include <vector>
 #include <mpi.h>
 #include <map>
+#include <cmath>
 
 using namespace std;
 

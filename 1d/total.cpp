@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <mpi.h>
+#include <cmath>
 
 using namespace std;
 
@@ -11,9 +12,9 @@ int main(int argc, char* argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    const int shift = 10;
+    const int shift = 15;
     const int a = 1 << shift;
-    const int n = a * a;
+    const long long n = a * a;
     int reps = 100;
     int local_size = n / size;
     int start_idx = rank * local_size;
@@ -21,8 +22,8 @@ int main(int argc, char* argv[]) {
 	MPI_Barrier(MPI_COMM_WORLD);
 	double ts0 = MPI_Wtime();
     std::vector<std::vector<double> > A_skinny(local_size, std::vector<double>(4));
-    std::vector<std::vector<int> > I_skinny(local_size, std::vector<int>(4));
-	std::vector<std::vector<std::vector<int> > > send_res_mat(size, std::vector<std::vector<int> >(size, std::vector<int>()));
+    std::vector<std::vector<long long> > I_skinny(local_size, std::vector<long long>(4));
+	std::vector<std::vector<std::vector<long long> > > send_res_mat(size, std::vector<std::vector<long long> >(size, std::vector<long long>()));
     std::vector<double> v_old(n);
     std::vector<double> v_new(n);
 
