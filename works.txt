@@ -17,3 +17,9 @@ scp -r -P 60441 wep014@dnat.simula.no:~/INF339/linear_vector/res/ ~/Desktop/INF3
 scp -r -P 60441 wep014@dnat.simula.no:~/INF339/matrix_verctor/8/16/ ~/Desktop/INF339A/results
 scp -r -P 60441 wep014@dnat.simula.no:~/INF339/matrix_verctor/8/8/ ~/Desktop/INF339A/results
 scp -r -P 60441 wep014@dnat.simula.no:~/INF339/total_time/2/ ~/Desktop/INF339A/results
+
+
+1a total time: 221.18 
+1a comm time: 219.627
+1d total time: 10.3347
+1d comm time: 

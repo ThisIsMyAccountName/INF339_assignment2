@@ -12,13 +12,15 @@ int main(int argc, char* argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    const int shift = 10;
+    const int shift = 11;
     const int a = 1 << shift;
     const int n = a * a;
     int reps = 100;
     int local_size = n / size;
     int start_idx = rank * local_size;
     int end_idx = start_idx + local_size;
+	MPI_Barrier(MPI_COMM_WORLD);
+	double ts0 = MPI_Wtime();
     std::vector<std::vector<double> > A_skinny(local_size, std::vector<double>(4));
     std::vector<std::vector<int> > I_skinny(local_size, std::vector<int>(4));
 	std::vector<std::vector<std::vector<int> > > send_res_mat(size, std::vector<std::vector<int> >(size, std::vector<int>()));
@@ -118,7 +120,12 @@ int main(int argc, char* argv[]) {
 	if (rank == 0){
 		v_old[0] = 1;
 	}
-
+	MPI_Barrier(MPI_COMM_WORLD);
+	double ts1 = MPI_Wtime();
+	double init_time = ts1 - ts0;
+	if (rank == 0){
+		cout << init_time << endl;
+	}
 
 	std::vector<std::vector<double> > send_buffer(size);
 	std::vector<std::vector<double> > recv_buffer(size);
@@ -129,11 +136,12 @@ int main(int argc, char* argv[]) {
 		recv_buffer[dest].resize(rank_recv[dest].size());
 	}
 
-	double start_time, end_time;
+	double t0, tcomm = 0.0, tcomp = 0.0;
 	MPI_Barrier(MPI_COMM_WORLD);
-	start_time = MPI_Wtime();
+	t0 = MPI_Wtime();
 
 	for (int k = 0; k < reps; k++) {
+		double tc1 = MPI_Wtime();
 		for (int i = 0; i < local_size; i++) {
 			v_new[i] = 0.0;
 			for (int j = 0; j < 4; j++) {
@@ -155,6 +163,8 @@ int main(int argc, char* argv[]) {
 		MPI_Request send_requests[send_amount];
 		MPI_Request recv_requests[send_amount];
 
+		double tc2 = MPI_Wtime();
+
 		send_amount = 0;
 		for (int dest = 0; dest < size; dest++) {
 			if (dest == rank) { continue; }
@@ -167,6 +177,10 @@ int main(int argc, char* argv[]) {
 		MPI_Waitall(send_amount, send_requests, MPI_STATUSES_IGNORE);
     	MPI_Waitall(send_amount, recv_requests, MPI_STATUSES_IGNORE);
 		
+		double tc3 = MPI_Wtime();
+		tcomm += tc3 - tc2;
+		tcomp += tc2 - tc1;
+
 		for (int dest = 0; dest < size; dest++) {
 			if (dest == rank) { continue; }
 			if (rank_send[dest].size() == 0) { continue; }
@@ -177,7 +191,6 @@ int main(int argc, char* argv[]) {
 
 		std::swap(v_new, v_old);
 	}
-
 	
 	// std::vector<double> v_fin(n);
 	// if (rank == 0) {
@@ -193,10 +206,22 @@ int main(int argc, char* argv[]) {
 	// }
 
 	MPI_Barrier(MPI_COMM_WORLD);
-	end_time = MPI_Wtime();
-	if (rank == 0) {
-		cout << end_time - start_time << endl;
-	}
+	double t1 = MPI_Wtime();
+
+	double l2 = 0.0;
+	for (int j = 0; j < local_size; j++)
+		l2 += v_old[j] * v_old[j];
+
+	l2 = sqrt(l2);
+
+	double ops = (long long)n * 8ll * 100ll; // 4 multiplications and 4 additions
+	double time = t1 - t0;
+	
+	if (rank == 0)
+        {
+            printf("%lfs (%lfs, %lfs), %lf GFLOPS, %lf GBs mem, %lf GBs comm, L2 = %lf\n",
+                   time, tcomp, tcomm, (ops / time) / 1e9, (n * 64.0 * 100.0 / tcomp) / 1e9, ((local_size * (size - 1)) * 8.0 * size * 100.0 / tcomm) / 1e9, l2);
+        }
 	
 	MPI_Finalize();
 	return 0;
