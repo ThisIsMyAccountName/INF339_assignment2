@@ -4,6 +4,7 @@
 #include <cmath>
 
 using namespace std;
+using i64 = int64_t;
 
 int main(int argc, char* argv[]) {
     MPI_Init(&argc, &argv);
@@ -16,9 +17,9 @@ int main(int argc, char* argv[]) {
     const int a = 1 << shift;
     const long long n = a * a;
     int reps = 100;
-    int local_size = n / size;
-    int start_idx = rank * local_size;
-    int end_idx = start_idx + local_size;
+    i64 local_size = n / size;
+    i64 start_idx = rank * local_size;
+    i64 end_idx = start_idx + local_size;
 	MPI_Barrier(MPI_COMM_WORLD);
 	double ts0 = MPI_Wtime();
     std::vector<std::vector<double> > A_skinny(local_size, std::vector<double>(4));
@@ -28,9 +29,9 @@ int main(int argc, char* argv[]) {
     std::vector<double> v_new(n);
 
 	// Populates I_skinny and send_res_mat
-	for (int i = start_idx; i < end_idx; i++) {
-		int idx[4];
-		int adj_rank;
+	for (i64 i = start_idx; i < end_idx; i++) {
+		i64 idx[4];
+		i64 adj_rank;
 
 		idx[0] = (0 <= i - 1 && i % (a) != 0) ? (i - 1) : i;
 		idx[1] = i;
@@ -42,7 +43,7 @@ int main(int argc, char* argv[]) {
 		I_skinny[i - start_idx][2] = idx[2];
 		I_skinny[i - start_idx][3] = idx[3];
 
-		for (int j = 0; j < 4; j++) {
+		for (i64 j = 0; j < 4; j++) {
 			if (start_idx > idx[j]) { adj_rank = (rank - 1 + size) % size;} 
 			else if (idx[j] > end_idx) { adj_rank = (rank + 1) % size;} 
 			else { continue; }
@@ -51,14 +52,14 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-    for (int i = 0; i < local_size; i++) {
+    for (i64 i = 0; i < local_size; i++) {
 		A_skinny[i][0] = 0.2;
 		A_skinny[i][1] = 0.4;
 		A_skinny[i][2] = 0.2;
 		A_skinny[i][3] = 0.2;
     }
 
-	int send_amount;
+	i64 send_amount;
 	
     if (rank == 0) {
         v_old[0] = 1;
@@ -74,7 +75,7 @@ int main(int argc, char* argv[]) {
 
 	std::vector<std::vector<double> > send_buffer(size);
 	std::vector<std::vector<double> > recv_buffer(size);
-	for (int dest = 0; dest < size; dest++) {
+	for (i64 dest = 0; dest < size; dest++) {
 		if (dest == rank) { continue; }
 		if (send_res_mat[rank][dest].size() == 0) { continue; }
 		send_buffer[dest].resize(send_res_mat[rank][dest].size());
@@ -85,20 +86,20 @@ int main(int argc, char* argv[]) {
 	MPI_Barrier(MPI_COMM_WORLD);
 	t0 = MPI_Wtime();
 
-	for (int k = 0; k < reps; k++) {
+	for (i64 k = 0; k < reps; k++) {
 		double tc1 = MPI_Wtime();
-		for (int i = 0; i < local_size; i++) {
+		for (i64 i = 0; i < local_size; i++) {
 			v_new[i + start_idx] = 0.0;
-			for (int j = 0; j < 4; j++) {
+			for (i64 j = 0; j < 4; j++) {
 				v_new[i + start_idx] += A_skinny[i][j] * v_old[I_skinny[i][j]];
 			}
 		}
 
 		send_amount = 0;
-		for (int dest = 0; dest < size; dest++) {
+		for (i64 dest = 0; dest < size; dest++) {
 			if (dest == rank) { continue; }
 			if (send_res_mat[rank][dest].size() == 0) { continue; }
-			for (int j = 0; j < send_res_mat[rank][dest].size(); j++) {
+			for (i64 j = 0; j < send_res_mat[rank][dest].size(); j++) {
 				send_buffer[dest][j] = (v_new[send_res_mat[rank][dest][j]]);
 			}
 			send_amount++;
@@ -110,7 +111,7 @@ int main(int argc, char* argv[]) {
 		MPI_Request recv_requests[send_amount];
 
 		send_amount = 0;
-		for (int dest = 0; dest < size; dest++) {
+		for (i64 dest = 0; dest < size; dest++) {
 			if (dest == rank) { continue; }
 			if (send_res_mat[rank][dest].size() == 0) { continue; }
 			MPI_Isend(send_buffer[dest].data(), send_buffer[dest].size(), MPI_DOUBLE, dest, 0, MPI_COMM_WORLD, &send_requests[send_amount]);
@@ -125,10 +126,10 @@ int main(int argc, char* argv[]) {
 		MPI_Waitall(send_amount, send_requests, MPI_STATUSES_IGNORE);
     	MPI_Waitall(send_amount, recv_requests, MPI_STATUSES_IGNORE);
 		
-		for (int dest = 0; dest < size; dest++) {
+		for (i64 dest = 0; dest < size; dest++) {
 			if (dest == rank) { continue; }
 			if (send_res_mat[rank][dest].size() == 0) { continue; }
-			for (int j = 0; j < send_res_mat[rank][dest].size(); j++) {
+			for (i64 j = 0; j < send_res_mat[rank][dest].size(); j++) {
 				v_new[send_res_mat[dest][rank][j]] = recv_buffer[dest][j];
 			}
 		}
@@ -142,7 +143,7 @@ int main(int argc, char* argv[]) {
 	double t1 = MPI_Wtime();
 
 	double l2 = 0.0;
-	for (int j = 0; j < n; j++)
+	for (i64 j = 0; j < n; j++)
 		l2 += v_old[j] * v_old[j];
 
 	l2 = sqrt(l2);
