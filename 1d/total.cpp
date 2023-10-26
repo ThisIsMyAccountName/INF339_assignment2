@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
 
     const int shift = 15;
     const int a = 1 << shift;
-    const long long n = a * a;
+    const i64 n = a * a;
     int reps = 100;
     i64 local_size = n / size;
     i64 start_idx = rank * local_size;
@@ -23,8 +23,8 @@ int main(int argc, char* argv[]) {
 	MPI_Barrier(MPI_COMM_WORLD);
 	double ts0 = MPI_Wtime();
     std::vector<std::vector<double> > A_skinny(local_size, std::vector<double>(4));
-    std::vector<std::vector<long long> > I_skinny(local_size, std::vector<long long>(4));
-	std::vector<std::vector<std::vector<long long> > > send_res_mat(size, std::vector<std::vector<long long> >(size, std::vector<long long>()));
+    std::vector<std::vector<i64> > I_skinny(local_size, std::vector<i64>(4));
+	std::vector<std::vector<std::vector<i64> > > send_res_mat(size, std::vector<std::vector<i64> >(size, std::vector<i64>()));
     std::vector<double> v_old(n);
     std::vector<double> v_new(n);
 
@@ -148,7 +148,7 @@ int main(int argc, char* argv[]) {
 
 	l2 = sqrt(l2);
 
-	double ops = (long long)n * 8ll * 100ll; // 4 multiplications and 4 additions
+	double ops = (i64)n * 8ll * 100ll; // 4 multiplications and 4 additions
 	double time = t1 - t0;
 	
 	if (rank == 0)
