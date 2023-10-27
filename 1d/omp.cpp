@@ -22,11 +22,11 @@ int main(int argc, char* argv[]) {
     int end_idx = start_idx + local_size;
     MPI_Barrier(MPI_COMM_WORLD);
     double ts0 = MPI_Wtime();
-    vector<vector<double>> A_skinny(local_size, vector<double>(4));
-    vector<vector<int>> I_skinny(local_size, vector<int>(4));
-    vector<vector<vector<int>>> send_res_mat(size, vector<vector<int>(size, vector<int>()));
-    vector<double> v_old(n);
-    vector<double> v_new(n);
+    std::vector<std::vector<double> > A_skinny(local_size, std::vector<double>(4));
+    std::vector<std::vector<int> > I_skinny(local_size, std::vector<int>(4));
+	std::vector<std::vector<std::vector<int> > > send_res_mat(size, std::vector<std::vector<int> >(size, std::vector<int>()));
+    std::vector<double> v_old(n);
+    std::vector<double> v_new(n);
 
     // Populates I_skinny and send_res_mat
 #pragma omp parallel for
