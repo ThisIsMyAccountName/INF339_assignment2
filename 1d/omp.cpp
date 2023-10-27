@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <mpi.h>
+#include <cmath>
 #include <omp.h> // Include OpenMP header
 
 using namespace std;
@@ -23,7 +24,7 @@ int main(int argc, char* argv[]) {
     double ts0 = MPI_Wtime();
     vector<vector<double>> A_skinny(local_size, vector<double>(4));
     vector<vector<int>> I_skinny(local_size, vector<int>(4));
-    vector<vector<vector<int>> send_res_mat(size, vector<vector<int>(size, vector<int>()));
+    vector<vector<vector<int>>> send_res_mat(size, vector<vector<int>(size, vector<int>()));
     vector<double> v_old(n);
     vector<double> v_new(n);
 
@@ -74,8 +75,8 @@ int main(int argc, char* argv[]) {
     }
     MPI_Bcast(v_old.data(), n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-    vector<vector<vector<double>> send_buffer(size);
-    vector<vector<vector<double>> recv_buffer(size);
+    std::vector<std::vector<double> > send_buffer(size);
+	std::vector<std::vector<double> > recv_buffer(size);
     for (int dest = 0; dest < size; dest++) {
         if (dest == rank) { continue; }
         if (send_res_mat[rank][dest].size() == 0) { continue; }
