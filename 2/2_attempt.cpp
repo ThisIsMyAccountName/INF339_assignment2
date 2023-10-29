@@ -170,6 +170,7 @@ int main(int argc, char* argv[]) {
 		MPI_Waitall(send_amount, send_requests, MPI_STATUSES_IGNORE);
     	MPI_Waitall(send_amount, recv_requests, MPI_STATUSES_IGNORE);
 		
+		
 		double tc3 = MPI_Wtime();
 		tcomm += tc3 - tc2;
 		tcomp += tc2 - tc1;
@@ -181,7 +182,8 @@ int main(int argc, char* argv[]) {
 				v_new[rank_recv[dest][j]] = recv_buffer[dest][j];
 			}
 		}
-
+		double tc4 = MPI_Wtime();
+		tcomp += tc4 - tc3;
 		std::swap(v_new, v_old);
 	}
 	
@@ -210,11 +212,29 @@ int main(int argc, char* argv[]) {
 	double ops = (long long)n * 8ll * 100ll; // 4 multiplications and 4 additions
 	double time = t1 - t0;
 	
+	int send_count = 0;
+	for (int j = 0; j < rank_send.size(); j++)
+		send_count += rank_send[j].size();
+
 	if (rank == 0)
-        {
-            printf("%lfs (%lfs, %lfs), %lf GFLOPS, %lf GBs mem, %lf GBs comm, L2 = %lf\n",
-                   time, tcomp, tcomm, (ops / time) / 1e9, (n * 64.0 * 100.0 / tcomp) / 1e9, ((local_size * (size - 1)) * 8.0 * size * 100.0 / tcomm) / 1e9, l2);
-        }
+	{
+		std:vector<int> send_counts(size);
+		MPI_Gather(&send_count, 1, MPI_INT, send_counts.data(), 1, MPI_INT, 0, MPI_COMM_WORLD);
+		int total_comm = 0;
+		for (int j = 0; j < size; j++)
+			total_comm += send_counts[j];
+			
+		printf("%lfs (%lfs, %lfs), %lf GFLOPS, %lf GBs mem, %lf GBs comm, L2 = %lf\n",
+			time, tcomp, tcomm,
+			(ops / time) / 1e9,
+			(n * 64.0 * 100.0 / tcomp) / 1e9,
+			(total_comm * 8.0 * 100.0 / tcomm) / 1e9,
+			l2);        
+	}
+	else
+	{
+		MPI_Gather(&send_count, 1, MPI_INT, NULL, 1, MPI_INT, 0, MPI_COMM_WORLD);
+	}
 	
 	MPI_Finalize();
 	return 0;
