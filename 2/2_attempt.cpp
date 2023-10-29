@@ -13,7 +13,7 @@ int main(int argc, char* argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    const int shift = 11;
+    const int shift = 15;
     const int a = 1 << shift;
     const int n = a * a;
     int reps = 100;
@@ -77,18 +77,10 @@ int main(int argc, char* argv[]) {
     }
 	// Populates A_skinny
     for (int i = 0; i < local_size; i++) {
-		if (i % 2 == 0){
-			A_skinny[i][0] = 0.2;
-			A_skinny[i][1] = 0.4;
-			A_skinny[i][2] = 0.2;
-			A_skinny[i][3] = 0.2;
-		}
-		else {
-			A_skinny[i][0] = 0.2;
-			A_skinny[i][1] = 0.4;
-			A_skinny[i][2] = 0.2;
-			A_skinny[i][3] = 0.2;
-		}
+		A_skinny[i][0] = 0.1;
+		A_skinny[i][1] = 0.7;
+		A_skinny[i][2] = 0.1;
+		A_skinny[i][3] = 0.1;
     }
     
 	std::vector<std::vector<int> > rank_send(size, std::vector<int>());

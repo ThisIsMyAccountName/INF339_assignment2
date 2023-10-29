@@ -11,9 +11,9 @@ int main(int argc, char* argv[]) {
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
 
-    const int shift = 10;
+    const int shift = 15;
     const int a = 1 << shift;
-    const int n = a * a;
+    std::size_t n = a * a;
     int reps = 100;
     int local_size = n / size;
     int start_idx = rank * local_size;
@@ -25,14 +25,9 @@ int main(int argc, char* argv[]) {
 	std::vector<std::vector<std::vector<int> > > send_res_mat(size, std::vector<std::vector<int> >(size, std::vector<int>()));
     std::vector<double> v_old(n);
     std::vector<double> v_new(n);
-	if (rank == 0){
-		cout << "got to line " << 29 << endl;
-	}
+
 	// Populates I_skinny and send_res_mat
 	for (int i = start_idx; i < end_idx; i++) {
-		if (rank == 0 && i % 100 == 0){
-			cout << "got to i =  " << i << endl;
-		}
 		int idx[4];
 		int adj_rank;
 
@@ -54,16 +49,14 @@ int main(int argc, char* argv[]) {
 			send_res_mat[adj_rank][rank].push_back(idx[j]);
 		}
 	}
-	if (rank == 0){
-		cout << "got to line " << 55 << endl;
-	}
-    for (int i = 0; i < local_size; i++) {
-		A_skinny[i][0] = 0.2;
-		A_skinny[i][1] = 0.4;
-		A_skinny[i][2] = 0.2;
-		A_skinny[i][3] = 0.2;
-    }
 
+    for (int i = 0; i < local_size; i++) {
+		A_skinny[i][0] = 0.1;
+		A_skinny[i][1] = 0.7;
+		A_skinny[i][2] = 0.1;
+		A_skinny[i][3] = 0.1;
+	}
+	
 	int send_amount;
 	
     if (rank == 0) {
@@ -77,6 +70,7 @@ int main(int argc, char* argv[]) {
 		cout << init_time << endl;
 	}
     MPI_Bcast(v_old.data(), n, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+
 	std::vector<std::vector<double> > send_buffer(size);
 	std::vector<std::vector<double> > recv_buffer(size);
 	for (int dest = 0; dest < size; dest++) {
@@ -89,6 +83,7 @@ int main(int argc, char* argv[]) {
 	double t0, tcomm = 0.0, tcomp = 0.0;
 	MPI_Barrier(MPI_COMM_WORLD);
 	t0 = MPI_Wtime();
+
 	for (int k = 0; k < reps; k++) {
 		double tc1 = MPI_Wtime();
 		for (int i = 0; i < local_size; i++) {
