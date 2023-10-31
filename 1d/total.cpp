@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <mpi.h>
-
+#include <cmath>
 using namespace std;
 
 int main(int argc, char* argv[]) {
@@ -87,11 +87,11 @@ int main(int argc, char* argv[]) {
 	for (int k = 0; k < reps; k++) {
 		double tc1 = MPI_Wtime();
 		for (int i = 0; i < local_size; i++) {
-			v_new[i + start_idx] = 0.0;
-			for (int j = 0; j < 4; j++) {
-				v_new[i + start_idx] += A_skinny[i][j] * v_old[I_skinny[i][j]];
+			v_new[i + start_idx] = A_skinny[i][0] * v_old[I_skinny[i][0]] 
+					+ A_skinny[i][1] * v_old[I_skinny[i][1]]
+					+ A_skinny[i][2] * v_old[I_skinny[i][2]]
+					+ A_skinny[i][3] * v_old[I_skinny[i][3]];
 			}
-		}
 
 		send_amount = 0;
 		for (int dest = 0; dest < size; dest++) {
